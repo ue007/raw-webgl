@@ -5,17 +5,14 @@ const ProgressBarPlugin = require('progress-bar-webpack-plugin');
 
 module.exports = {
   mode: 'development',
-
   entry: './src/index.ts',
   output: {
     filename: 'bundle.js',
     path: resolve(__dirname, 'dist'),
   },
-
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },
-
   devtool: 'source-map',
   devServer: {
     before(app) {

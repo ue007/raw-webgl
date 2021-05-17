@@ -13,7 +13,6 @@
         "outDir": "./lib/",
         "sourceMap": true,
         "paths": {
-            // "maptalks": ["./sdk/types/maptalks"]
         }
     },
     "exclude": [

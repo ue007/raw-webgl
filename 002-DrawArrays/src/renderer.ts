@@ -2,49 +2,156 @@ import { GUI } from 'dat.gui';
 import { WebGLAPI } from './webglAPI';
 import { vertShaderCode, fragShaderCode } from './shader';
 import Data from './data';
+import { Trigger } from './trigger';
+import Model from './model';
+import { GLUtil } from './gl';
 
 /*************************************************************/
-export default class Renderer {
+export default class Renderer extends Trigger {
   // 🖼️ Canvas
   canvas: HTMLCanvasElement;
+  canvasOrId: HTMLCanvasElement | string;
 
   // ⚙️ API Data Structures
-  gl: WebGLRenderingContext;
+  gl: WebGLRenderingContext | WebGL2RenderingContext;
 
   // 🎞️ Frame Backings
   animationHandler: number;
 
-  // 🔺 Resources
-  verticeBuffer: WebGLBuffer;
-  colorBuffer: WebGLBuffer;
-  indexBuffer: WebGLBuffer;
   vertModule: WebGLShader;
   fragModule: WebGLShader;
   program: WebGLProgram;
   data: Data;
+  model: Model;
+  webgl2: boolean;
+  gui: GUI;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
+  constructor(canvasOrId: HTMLCanvasElement | string) {
+    super();
+    this.webgl2 = false;
+    this.canvasOrId = canvasOrId;
+
     this.data = new Data();
-    WebGLAPI.drawArrays.enable = true;
-    WebGLAPI.drawArrays.count = this.data.vertices.length / 3;
-    WebGLAPI.drawElements.enable = true;
-    WebGLAPI.drawElements.count = this.data.vertices.length / 3;
-    WebGLAPI.drawElements.mode = 'LINE_LOOP';
+    this.initializeWebGL();
+    this.initializeResources();
+
     this.initGUI();
+  }
+
+  bind(model: Model) {
+    this.model = model;
+
+    let gl = this.gl;
+    if (!gl) return;
+
+    this.model.forEach((m) => {
+      // vertex buffer
+      m.verticeBuffer = GLUtil.vbo(
+        this.gl,
+        this.program,
+        'a_vertex',
+        new Float32Array(m.vertices)
+      );
+      m.colorBuffer = GLUtil.vbo(
+        this.gl,
+        this.program,
+        'a_color',
+        new Float32Array(m.colors)
+      );
+      // GLUtil.vbo(this.gl, this.program, 'a_color', m.indices);
+      var a_pointsize = gl.getAttribLocation(this.program, 'a_pointsize');
+      gl.vertexAttrib1f(a_pointsize, m.pointsize || 10.0);
+    }, this);
+  }
+
+  bindGUI() {
+    if (!this.model || !this.gui) return;
+    let gui = this.gui,
+      model = this.model,
+      gl = this.gl,
+      program = this.program;
+
+    model.forEach((m) => {
+      {
+        const m_folder = gui.addFolder('Model:' + m.id);
+        var folder_attributes = m_folder.addFolder('Attributes');
+        folder_attributes.open();
+
+        folder_attributes
+          .add(m, 'pointSize', 0, 300, 1)
+          .listen()
+          .onChange(function (value) {
+            m.pointSize = value;
+            var a_pointsize = gl.getAttribLocation(program, 'a_pointsize');
+            gl.vertexAttrib1f(a_pointsize, value);
+          });
+
+        var folder_vertices = folder_attributes.addFolder('vertices');
+        folder_vertices.open();
+
+        Object.keys(m.vertices).forEach((key) => {
+          folder_vertices
+            .add(m.vertices, key, -1.0, 1.0, 0.1)
+            .onChange(function (value) {
+              if (gl) {
+                GLUtil.attribute(
+                  gl,
+                  m.verticeBuffer,
+                  new Float32Array(m.vertices),
+                  'a_position',
+                  3,
+                  gl.FLOAT,
+                  gl.FLOAT,
+                  3 * Float32Array.BYTES_PER_ELEMENT,
+                  0
+                );
+              }
+            })
+            .listen();
+        });
+
+        var folder_colors = folder_attributes.addFolder('colors');
+        folder_colors.open();
+        Object.keys(m.colors).forEach((key) => {
+          folder_colors
+            .add(m.colors, key, 0.0, 1.0, 0.1)
+            .onChange(function (value) {
+              if (gl) {
+                GLUtil.attribute(
+                  gl,
+                  m.colorBuffer,
+                  new Float32Array(m.colors),
+                  'a_color',
+                  4,
+                  gl.FLOAT,
+                  gl.FLOAT,
+                  4 * Float32Array.BYTES_PER_ELEMENT,
+                  0
+                );
+              }
+            })
+            .listen();
+        });
+      }
+    });
   }
 
   // 🏎️ Start the Rendering Engine
   start() {
-    this.initializeAPI();
-    this.initializeResources();
+    //
     this.render();
   }
 
   // 🌟 Initialize WebGL
-  initializeAPI() {
+  initializeWebGL() {
     // ⚪ Initialization
-    var gl: WebGLRenderingContext = this.canvas.getContext('webgl');
+    this.canvas = GLUtil.getCanvas(this.canvasOrId);
+    this.canvas.width = this.canvas.height = 640;
+
+    const gl: WebGLRenderingContext = GLUtil.getContext(
+      this.canvas,
+      this.webgl2
+    ); // webgl1.0
     if (!gl) {
       // This rendering engine failed to start...
       throw new Error('WebGL failed to initialize.');
@@ -69,58 +176,21 @@ export default class Renderer {
 
   // 🍱 Initialize resources to render triangle (buffers, shaders, pipeline)
   initializeResources() {
-    let gl = this.gl;
+    this.vertModule = GLUtil.createShader(
+      this.gl,
+      vertShaderCode,
+      this.gl.VERTEX_SHADER
+    );
+    this.fragModule = GLUtil.createShader(
+      this.gl,
+      fragShaderCode,
+      this.gl.FRAGMENT_SHADER
+    );
 
-    // 👋 Helper function for creating WebGLBuffer(s) out of Typed Arrays
-    let createBuffer = (arr) => {
-      // ⚪ Create Buffer
-      let buf = gl.createBuffer();
-      let bufType =
-        arr instanceof Uint16Array || arr instanceof Uint32Array
-          ? gl.ELEMENT_ARRAY_BUFFER
-          : gl.ARRAY_BUFFER;
-      // 🩹 Bind Buffer to WebGLState
-      gl.bindBuffer(bufType, buf);
-      // 💾 Push data to VBO
-      gl.bufferData(bufType, arr, gl.STATIC_DRAW);
-      return buf;
-    };
-
-    this.verticeBuffer = createBuffer(this.data.vertices);
-    this.colorBuffer = createBuffer(this.data.colors);
-    this.indexBuffer = createBuffer(this.data.indices);
-
-    // 👋 Helper function for creating WebGLShader(s) out of strings
-    let createShader = (source: string, stage) => {
-      // ⚪ Create Shader
-      let s = gl.createShader(stage);
-      // 📰 Pass Vertex Shader String
-      gl.shaderSource(s, source);
-      // 🔨 Compile Vertex Shader (and check for errors)
-      gl.compileShader(s);
-      // ❔ Check if shader compiled correctly
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        console.error(
-          'An error occurred compiling the shader: ' + gl.getShaderInfoLog(s)
-        );
-      }
-      return s;
-    };
-
-    this.vertModule = createShader(vertShaderCode, gl.VERTEX_SHADER);
-    this.fragModule = createShader(fragShaderCode, gl.FRAGMENT_SHADER);
-
-    // 👋 Helper function for creating WebGLProgram(s) out of WebGLShader(s)
-    let createProgram = (stages: WebGLShader[]) => {
-      let p = gl.createProgram();
-      for (let stage of stages) {
-        gl.attachShader(p, stage);
-      }
-      gl.linkProgram(p);
-      return p;
-    };
-
-    this.program = createProgram([this.vertModule, this.fragModule]);
+    this.program = GLUtil.createProgram(this.gl, [
+      this.vertModule,
+      this.fragModule,
+    ]);
   }
 
   // 🔺 Render triangle
@@ -133,7 +203,19 @@ export default class Renderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.scissor(0, 0, this.canvas.width, this.canvas.height);
 
-    // 🔣 Bind Vertex Layout
+    this.model.forEach((m) => {
+      // 以给定的形式绘制图形
+      if (WebGLAPI.drawArrays.enable) {
+        m.draw(gl);
+      }
+    });
+
+    // // create Buffer
+    // this.verticeBuffer = GLUtil.createBuffer(this.gl, this.data.vertices);
+    // this.colorBuffer = GLUtil.createBuffer(this.gl, this.data.colors);
+    // this.indexBuffer = GLUtil.createBuffer(this.gl, this.data.indices);
+
+    /*  // 🔣 Bind Vertex Layout
     let setVertexBuffer = (buf: WebGLBuffer, name: string) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       let loc = gl.getAttribLocation(this.program, name);
@@ -159,7 +241,6 @@ export default class Renderer {
     }
 
     if (WebGLAPI.drawElements.enable) {
-      // gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);
       if (WebGLAPI.drawElements.indexArrayType === 'Uint8Array') {
         gl.drawElements(
           gl[WebGLAPI.drawElements.mode],
@@ -175,7 +256,7 @@ export default class Renderer {
           WebGLAPI.drawElements.offset * Uint16Array.BYTES_PER_ELEMENT
         );
       }
-    }
+    } */
 
     // ➿ Refresh canvas
     this.animationHandler = requestAnimationFrame(this.render);
@@ -183,11 +264,15 @@ export default class Renderer {
 
   // 💥 Destroy Buffers, Shaders, Programs
   destroyResources() {
-    var gl = this.gl;
+    var gl = this.gl,
+      model = this.model;
 
-    gl.deleteBuffer(this.verticeBuffer);
-    gl.deleteBuffer(this.colorBuffer);
-    gl.deleteBuffer(this.indexBuffer);
+    model.forEach((m) => {
+      gl.deleteBuffer(m.verticeBuffer);
+      gl.deleteBuffer(m.colorBuffer);
+      gl.deleteBuffer(m.indexBuffer);
+    });
+
     gl.deleteShader(this.vertModule);
     gl.deleteShader(this.fragModule);
     gl.deleteProgram(this.program);
@@ -200,10 +285,16 @@ export default class Renderer {
   }
 
   initGUI() {
+    WebGLAPI.drawArrays.enable = true;
+    WebGLAPI.drawArrays.count = this.data.vertices.length / 3;
+    WebGLAPI.drawElements.enable = true;
+    WebGLAPI.drawElements.count = this.data.vertices.length / 3;
+    WebGLAPI.drawElements.mode = 'LINE_LOOP';
+
     const data = this.data;
     const gui = new GUI();
     gui.open();
-
+    this.gui = gui;
     // Render
     var folder_webgl = gui.addFolder('Render');
     folder_webgl.open();
@@ -218,18 +309,24 @@ export default class Renderer {
         this.gl && this.gl.clearColor(r, g, b, 1.0);
       });
     folder_webgl
-      .add(WebGLAPI, 'pointSize')
-      .listen()
-      .onChange((value) => {});
-    folder_webgl
       .add(WebGLAPI.drawArrays, 'enable')
       .listen()
       .name('DrawArrays')
       .onChange((value) => {});
     folder_webgl
+      .add(WebGLAPI.drawArraysInstanced, 'enable')
+      .listen()
+      .name('drawArraysInstanced')
+      .onChange((value) => {});
+    folder_webgl
       .add(WebGLAPI.drawElements, 'enable')
       .listen()
       .name('DrawElements')
+      .onChange((value) => {});
+    folder_webgl
+      .add(WebGLAPI.drawElementsInstanced, 'enable')
+      .listen()
+      .name('drawElementsInstanced')
       .onChange((value) => {});
 
     // drawArrays

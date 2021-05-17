@@ -1,6 +1,12 @@
 import Renderer from './renderer';
+import Model from './model';
+import Data from './data';
 
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-canvas.width = canvas.height = 640;
-const renderer = new Renderer(canvas);
+
+const model = new Model();
+const data = new Data();
+model.add(data);
+const renderer = new Renderer('canvas');
+renderer.bind(model);
+renderer.bindGUI();
 renderer.start();

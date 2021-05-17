@@ -1,22 +1,16 @@
 import { Trigger } from './trigger';
 import { defineProperties } from './util';
-import { WebGLAPI } from './webglAPI';
 let dataId = 1;
-
 export default class Data extends Trigger {
   id: number;
   children: Array<Data>;
-  vertices: [] | Float32Array;
-  colors: [] | Float32Array;
-  uv: [] | Float32Array;
-  indices: [] | Uint16Array;
+  vertices: Float32Array;
+  colors: Float32Array;
+  uv: Float32Array;
+  indices: Uint16Array;
   pointsize: number;
-  instanced: [] | Float32Array;
+  instanced: Float32Array;
   options: Object;
-  // 🔺 Resources buffer
-  verticeBuffer: WebGLBuffer;
-  colorBuffer: WebGLBuffer;
-  indexBuffer: WebGLBuffer;
 
   constructor(options?: any) {
     super();
@@ -50,30 +44,4 @@ export default class Data extends Trigger {
     this.pointsize = (options && options.pointsize) || 100.0;
     this.instanced = (options && options.instanced) || [];
   }
-
-  draw(gl: WebGLRenderingContext | WebGL2RenderingContext) {
-    gl.drawArrays(
-      gl[WebGLAPI.drawArrays.mode],
-      WebGLAPI.drawArrays.first,
-      WebGLAPI.drawArrays.count
-    );
-  }
 }
-
-defineProperties(Data.prototype, [
-  {
-    name: 'pointSize',
-    get() {
-      return this.pointsize;
-    },
-    set(value) {
-      let old = this.pointsize;
-      this.pointsize = value;
-      this.fire({
-        type: 'change',
-        oldValue: old,
-        newValue: value,
-      });
-    },
-  },
-]);

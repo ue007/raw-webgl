@@ -1,85 +1,65 @@
-// 📈 Position Vertex Buffer Data
-const positions = new Float32Array([
-  1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0,
-]);
-
-// 🎨 Color Vertex Buffer Data
-const colors = new Float32Array([
-  1.0,
-  0.0,
-  0.0, // 🔴
-  0.0,
-  1.0,
-  0.0, // 🟢
-  0.0,
-  0.0,
-  1.0, // 🔵
-]);
-
-// 🗄️ Index Buffer Data
-const indices = new Uint16Array([0, 1, 2]);
-
-// 🕸️ Vertex Shader Source
-const vertShaderCode = `
-attribute vec3 inPosition;
-attribute vec3 inColor;
-
-varying vec3 vColor;
-
-void main()
-{
-    vColor = inColor;
-    gl_Position = vec4(inPosition, 1.0);
-}
-`;
-
-// 🟦 Fragment Shader Source
-const fragShaderCode = `
-precision mediump float;
-
-varying highp vec3 vColor;
-
-void main()
-{
-    gl_FragColor = vec4(vColor, 1.0);
-}
-`;
+import { GUI } from 'dat.gui';
+import { WebGLAPI } from './webglAPI';
+import { vertShaderCode, fragShaderCode } from './shader';
+import Data from './data';
+import { Trigger } from './trigger';
+import Model from './model';
+import { GLUtil } from './gl';
 
 /*************************************************************/
-
-export default class Renderer {
+export default class Renderer extends Trigger {
   // 🖼️ Canvas
   canvas: HTMLCanvasElement;
+  canvasOrId: HTMLCanvasElement | string;
 
   // ⚙️ API Data Structures
-  gl: WebGLRenderingContext;
+  gl: WebGLRenderingContext | WebGL2RenderingContext;
 
   // 🎞️ Frame Backings
   animationHandler: number;
 
   // 🔺 Resources
-  positionBuffer: WebGLBuffer;
+  verticeBuffer: WebGLBuffer;
   colorBuffer: WebGLBuffer;
   indexBuffer: WebGLBuffer;
   vertModule: WebGLShader;
   fragModule: WebGLShader;
   program: WebGLProgram;
+  data: Data;
+  model: Model;
+  webgl2: boolean;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
+  constructor(canvasOrId: HTMLCanvasElement | string) {
+    super();
+    this.webgl2 = false;
+    this.canvasOrId = canvasOrId;
+
+    this.data = new Data();
+    this.initialize();
+
+    this.initGUI();
+  }
+
+  bind(model: Model) {
+    this.model = model;
   }
 
   // 🏎️ Start the Rendering Engine
   start() {
-    this.initializeAPI();
-    this.initializeResources();
+    // this.initializeResources();
     this.render();
   }
 
   // 🌟 Initialize WebGL
-  initializeAPI() {
+  initialize() {
     // ⚪ Initialization
-    var gl: WebGLRenderingContext = this.canvas.getContext('webgl');
+    this.canvas = GLUtil.getCanvas(this.canvasOrId);
+    this.canvas.width = this.canvas.height = 640;
+
+    const gl: WebGLRenderingContext = GLUtil.getContext(
+      this.canvas,
+      this.webgl2
+    ); // webgl1.0
     if (!gl) {
       // This rendering engine failed to start...
       throw new Error('WebGL failed to initialize.');
@@ -121,9 +101,9 @@ export default class Renderer {
       return buf;
     };
 
-    this.positionBuffer = createBuffer(positions);
-    this.colorBuffer = createBuffer(colors);
-    this.indexBuffer = createBuffer(indices);
+    this.verticeBuffer = createBuffer(this.data.vertices);
+    this.colorBuffer = createBuffer(this.data.colors);
+    this.indexBuffer = createBuffer(this.data.indices);
 
     // 👋 Helper function for creating WebGLShader(s) out of strings
     let createShader = (source: string, stage) => {
@@ -168,7 +148,7 @@ export default class Renderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.scissor(0, 0, this.canvas.width, this.canvas.height);
 
-    // 🔣 Bind Vertex Layout
+    /*  // 🔣 Bind Vertex Layout
     let setVertexBuffer = (buf: WebGLBuffer, name: string) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       let loc = gl.getAttribLocation(this.program, name);
@@ -176,11 +156,40 @@ export default class Renderer {
       gl.enableVertexAttribArray(loc);
     };
 
-    setVertexBuffer(this.positionBuffer, 'inPosition');
-    setVertexBuffer(this.colorBuffer, 'inColor');
+    setVertexBuffer(this.verticeBuffer, 'a_vertex');
+    setVertexBuffer(this.colorBuffer, 'a_color');
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-    gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);
+
+    var a_pointsize = gl.getAttribLocation(this.program, 'a_pointsize');
+    gl.vertexAttrib1f(a_pointsize, WebGLAPI.pointSize || 10.0);
+
+    // 以给定的形式绘制图形
+    if (WebGLAPI.drawArrays.enable) {
+      gl.drawArrays(
+        gl[WebGLAPI.drawArrays.mode],
+        WebGLAPI.drawArrays.first,
+        WebGLAPI.drawArrays.count
+      );
+    }
+
+    if (WebGLAPI.drawElements.enable) {
+      if (WebGLAPI.drawElements.indexArrayType === 'Uint8Array') {
+        gl.drawElements(
+          gl[WebGLAPI.drawElements.mode],
+          WebGLAPI.drawElements.count,
+          gl[WebGLAPI.drawElements.type],
+          WebGLAPI.drawElements.offset * Uint8Array.BYTES_PER_ELEMENT
+        );
+      } else if (WebGLAPI.drawElements.indexArrayType === 'Uint16Array') {
+        gl.drawElements(
+          gl[WebGLAPI.drawElements.mode],
+          WebGLAPI.drawElements.count,
+          gl[WebGLAPI.drawElements.type],
+          WebGLAPI.drawElements.offset * Uint16Array.BYTES_PER_ELEMENT
+        );
+      }
+    } */
 
     // ➿ Refresh canvas
     this.animationHandler = requestAnimationFrame(this.render);
@@ -190,7 +199,7 @@ export default class Renderer {
   destroyResources() {
     var gl = this.gl;
 
-    gl.deleteBuffer(this.positionBuffer);
+    gl.deleteBuffer(this.verticeBuffer);
     gl.deleteBuffer(this.colorBuffer);
     gl.deleteBuffer(this.indexBuffer);
     gl.deleteShader(this.vertModule);
@@ -202,5 +211,104 @@ export default class Renderer {
   stop() {
     cancelAnimationFrame(this.animationHandler);
     this.destroyResources();
+  }
+
+  initGUI() {
+    WebGLAPI.drawArrays.enable = true;
+    WebGLAPI.drawArrays.count = this.data.vertices.length / 3;
+    WebGLAPI.drawElements.enable = true;
+    WebGLAPI.drawElements.count = this.data.vertices.length / 3;
+    WebGLAPI.drawElements.mode = 'LINE_LOOP';
+
+    const data = this.data;
+    const gui = new GUI();
+    gui.open();
+
+    // Render
+    var folder_webgl = gui.addFolder('Render');
+    folder_webgl.open();
+    folder_webgl
+      .addColor(WebGLAPI, 'clearColor')
+      .listen()
+      .onChange((value) => {
+        let clearColor = value;
+        let r = clearColor[0] / 255.0;
+        let g = clearColor[1] / 255.0;
+        let b = clearColor[2] / 255.0;
+        this.gl && this.gl.clearColor(r, g, b, 1.0);
+      });
+    folder_webgl
+      .add(WebGLAPI, 'pointSize')
+      .listen()
+      .onChange((value) => {});
+    folder_webgl
+      .add(WebGLAPI.drawArrays, 'enable')
+      .listen()
+      .name('DrawArrays')
+      .onChange((value) => {});
+    folder_webgl
+      .add(WebGLAPI.drawArraysInstanced, 'enable')
+      .listen()
+      .name('drawArraysInstanced')
+      .onChange((value) => {});
+    folder_webgl
+      .add(WebGLAPI.drawElements, 'enable')
+      .listen()
+      .name('DrawElements')
+      .onChange((value) => {});
+    folder_webgl
+      .add(WebGLAPI.drawElementsInstanced, 'enable')
+      .listen()
+      .name('drawElementsInstanced')
+      .onChange((value) => {});
+
+    // drawArrays
+    {
+      var folder_drawArrays = gui.addFolder('DrawArrays');
+      folder_drawArrays.open();
+      folder_drawArrays
+        .add(WebGLAPI.drawArrays, 'mode', [
+          'POINTS',
+          'LINE_STRIP',
+          'LINE_LOOP',
+          'LINES',
+          'TRIANGLE_STRIP',
+          'TRIANGLE_FAN',
+          'TRIANGLES',
+        ])
+        .listen();
+      folder_drawArrays
+        .add(WebGLAPI.drawArrays, 'first', 0, data.vertices.length / 3)
+        .onChange(function (value) {
+          WebGLAPI.drawArrays.count = data.vertices.length / 3 - value;
+        });
+      folder_drawArrays
+        .add(WebGLAPI.drawArrays, 'count', -1, data.vertices.length / 3)
+        .listen();
+    }
+
+    // drawElements
+    {
+      var folder_drawElements = gui.addFolder('DrawElements');
+      folder_drawElements.open();
+      folder_drawElements
+        .add(WebGLAPI.drawElements, 'mode', [
+          'POINTS',
+          'LINE_STRIP',
+          'LINE_LOOP',
+          'LINES',
+          'TRIANGLE_STRIP',
+          'TRIANGLE_FAN',
+          'TRIANGLES',
+        ])
+        .listen();
+      folder_drawElements
+        .add(WebGLAPI.drawElements, 'count', -1, data.vertices.length / 3)
+        .listen();
+      folder_drawElements
+        .add(WebGLAPI.drawElements, 'offset', 0, data.vertices.length / 3)
+        .listen();
+      folder_drawElements.add(WebGLAPI.drawElements, 'type').listen();
+    }
   }
 }
