@@ -44,27 +44,13 @@ export default class Renderer extends Trigger {
     if (!gl) return;
 
     this.model.forEach((m) => {
-      // vertex buffer
-      m.verticeBuffer = GLUtil.vbo(
-        this.gl,
-        this.program,
-        'a_vertex',
-        new Float32Array(m.vertices)
-      );
-      m.colorBuffer = GLUtil.vbo(
-        this.gl,
-        this.program,
-        'a_color',
-        new Float32Array(m.colors)
-      );
-      // GLUtil.vbo(this.gl, this.program, 'a_color', m.indices);
-      var a_pointsize = gl.getAttribLocation(this.program, 'a_pointsize');
-      gl.vertexAttrib1f(a_pointsize, m.pointsize || 10.0);
+      m.createBuffer(this.gl, this.program);
     }, this);
   }
 
   bindGUI() {
     if (!this.model || !this.gui) return;
+
     let gui = this.gui,
       model = this.model,
       gl = this.gl,
@@ -72,9 +58,81 @@ export default class Renderer extends Trigger {
 
     model.forEach((m) => {
       {
-        const m_folder = gui.addFolder('Model:' + m.id);
-        var folder_attributes = m_folder.addFolder('Attributes');
-        folder_attributes.open();
+        let m_folder = gui.addFolder('Model:' + m.id);
+        let folder_draw = m_folder.addFolder('Draw');
+
+        m.drawArrays.enable = true;
+        m.drawArrays.count = m.vertices.length / 3;
+        m.drawElements.enable = true;
+        m.drawElements.count = m.vertices.length / 3;
+        m.drawElements.mode = 'LINE_LOOP';
+
+        // drawArrays
+        {
+          let folder_drawArrays = folder_draw.addFolder('DrawArrays');
+          folder_drawArrays
+            .add(m.drawArrays, 'enable')
+            .listen()
+            .name('enable')
+            .onChange((value) => {});
+          folder_drawArrays
+            .add(m.drawArrays, 'mode', [
+              'POINTS',
+              'LINE_STRIP',
+              'LINE_LOOP',
+              'LINES',
+              'TRIANGLE_STRIP',
+              'TRIANGLE_FAN',
+              'TRIANGLES',
+            ])
+            .listen();
+          folder_drawArrays
+            .add(m.drawArrays, 'first', 0, m.vertices.length / 3)
+            .onChange(function (value) {
+              m.drawArrays.count = m.vertices.length / 3 - value;
+            });
+          folder_drawArrays
+            .add(m.drawArrays, 'count', -1, m.vertices.length / 3)
+            .listen();
+        }
+
+        let folder_drawArrayInstance =
+          folder_draw.addFolder('DrawArrayInstance');
+
+        {
+          let folder_drawElements = folder_draw.addFolder('DrawElements');
+          folder_drawElements.open();
+          folder_drawElements
+            .add(m.drawElements, 'enable')
+            .listen()
+            .name('enable')
+            .onChange((value) => {});
+          folder_drawElements
+            .add(m.drawElements, 'mode', [
+              'POINTS',
+              'LINE_STRIP',
+              'LINE_LOOP',
+              'LINES',
+              'TRIANGLE_STRIP',
+              'TRIANGLE_FAN',
+              'TRIANGLES',
+            ])
+            .listen();
+          folder_drawElements
+            .add(m.drawElements, 'count', -1, m.vertices.length / 3)
+            .listen();
+          folder_drawElements
+            .add(m.drawElements, 'offset', 0, m.vertices.length / 3)
+            .listen();
+          folder_drawElements.add(m.drawElements, 'type').listen();
+        }
+
+        let folder_drawElementInstance = folder_draw.addFolder(
+          'DrawElementInstance'
+        );
+
+        let folder_attributes = m_folder.addFolder('Attributes');
+        // folder_attributes.open();
 
         folder_attributes
           .add(m, 'pointSize', 0, 300, 1)
@@ -86,7 +144,7 @@ export default class Renderer extends Trigger {
           });
 
         var folder_vertices = folder_attributes.addFolder('vertices');
-        folder_vertices.open();
+        // folder_vertices.open();
 
         Object.keys(m.vertices).forEach((key) => {
           folder_vertices
@@ -95,7 +153,7 @@ export default class Renderer extends Trigger {
               if (gl) {
                 GLUtil.attribute(
                   gl,
-                  m.verticeBuffer,
+                  m._vertexBuffer,
                   new Float32Array(m.vertices),
                   'a_position',
                   3,
@@ -110,7 +168,7 @@ export default class Renderer extends Trigger {
         });
 
         var folder_colors = folder_attributes.addFolder('colors');
-        folder_colors.open();
+        // folder_colors.open();
         Object.keys(m.colors).forEach((key) => {
           folder_colors
             .add(m.colors, key, 0.0, 1.0, 0.1)
@@ -118,7 +176,7 @@ export default class Renderer extends Trigger {
               if (gl) {
                 GLUtil.attribute(
                   gl,
-                  m.colorBuffer,
+                  m._colorBuffer,
                   new Float32Array(m.colors),
                   'a_color',
                   4,
@@ -204,28 +262,26 @@ export default class Renderer extends Trigger {
 
     this.model.forEach((m) => {
       // 以给定的形式绘制图形
-      if (WebGLAPI.drawArrays.enable) {
-        m.draw(gl);
-      }
+      m.draw(gl);
     });
 
     // // create Buffer
-    // this.verticeBuffer = GLUtil.createBuffer(this.gl, this.data.vertices);
-    // this.colorBuffer = GLUtil.createBuffer(this.gl, this.data.colors);
-    // this.indexBuffer = GLUtil.createBuffer(this.gl, this.data.indices);
+    // this._vertexBuffer = GLUtil.createBuffer(this.gl, this.data.vertices);
+    // this._colorBuffer = GLUtil.createBuffer(this.gl, this.data.colors);
+    // this._indexBuffer = GLUtil.createBuffer(this.gl, this.data.indices);
 
     /*  // 🔣 Bind Vertex Layout
-    let setVertexBuffer = (buf: WebGLBuffer, name: string) => {
+    let set_VertexBuffer = (buf: WebGLBuffer, name: string) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       let loc = gl.getAttribLocation(this.program, name);
       gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 4 * 3, 0);
       gl.enableVertexAttribArray(loc);
     };
 
-    setVertexBuffer(this.verticeBuffer, 'a_vertex');
-    setVertexBuffer(this.colorBuffer, 'a_color');
+    set_VertexBuffer(this._vertexBuffer, 'a_vertex');
+    set_VertexBuffer(this._colorBuffer, 'a_color');
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indexBuffer);
 
     var a_pointsize = gl.getAttribLocation(this.program, 'a_pointsize');
     gl.vertexAttrib1f(a_pointsize, WebGLAPI.pointSize || 10.0);
@@ -267,9 +323,9 @@ export default class Renderer extends Trigger {
       model = this.model;
 
     model.forEach((m) => {
-      gl.deleteBuffer(m.verticeBuffer);
-      gl.deleteBuffer(m.colorBuffer);
-      gl.deleteBuffer(m.indexBuffer);
+      gl.deleteBuffer(m._vertexBuffer);
+      gl.deleteBuffer(m._colorBuffer);
+      gl.deleteBuffer(m._indexBuffer);
     });
 
     gl.deleteShader(this.vertModule);
@@ -284,12 +340,6 @@ export default class Renderer extends Trigger {
   }
 
   initGUI() {
-    WebGLAPI.drawArrays.enable = true;
-    WebGLAPI.drawArrays.count = this.data.vertices.length / 3;
-    WebGLAPI.drawElements.enable = true;
-    WebGLAPI.drawElements.count = this.data.vertices.length / 3;
-    WebGLAPI.drawElements.mode = 'LINE_LOOP';
-
     const data = this.data;
     const gui = new GUI();
     gui.open();
@@ -307,27 +357,27 @@ export default class Renderer extends Trigger {
         let b = clearColor[2] / 255.0;
         this.gl && this.gl.clearColor(r, g, b, 1.0);
       });
-    folder_webgl
-      .add(WebGLAPI.drawArrays, 'enable')
-      .listen()
-      .name('DrawArrays')
-      .onChange((value) => {});
-    folder_webgl
-      .add(WebGLAPI.drawArraysInstanced, 'enable')
-      .listen()
-      .name('drawArraysInstanced')
-      .onChange((value) => {});
-    folder_webgl
-      .add(WebGLAPI.drawElements, 'enable')
-      .listen()
-      .name('DrawElements')
-      .onChange((value) => {});
-    folder_webgl
-      .add(WebGLAPI.drawElementsInstanced, 'enable')
-      .listen()
-      .name('drawElementsInstanced')
-      .onChange((value) => {});
-
+    // folder_webgl
+    //   .add(WebGLAPI.drawArrays, 'enable')
+    //   .listen()
+    //   .name('DrawArrays')
+    //   .onChange((value) => {});
+    // folder_webgl
+    //   .add(WebGLAPI.drawArraysInstanced, 'enable')
+    //   .listen()
+    //   .name('drawArraysInstanced')
+    //   .onChange((value) => {});
+    // folder_webgl
+    //   .add(WebGLAPI.drawElements, 'enable')
+    //   .listen()
+    //   .name('DrawElements')
+    //   .onChange((value) => {});
+    // folder_webgl
+    //   .add(WebGLAPI.drawElementsInstanced, 'enable')
+    //   .listen()
+    //   .name('drawElementsInstanced')
+    //   .onChange((value) => {});
+    return;
     // drawArrays
     {
       var folder_drawArrays = gui.addFolder('DrawArrays');
