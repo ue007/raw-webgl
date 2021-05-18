@@ -153,12 +153,13 @@ export default class Renderer extends Trigger {
               if (gl) {
                 GLUtil.attribute(
                   gl,
+                  program,
                   m._vertexBuffer,
                   new Float32Array(m.vertices),
-                  'a_position',
+                  'a_vertex',
                   3,
                   gl.FLOAT,
-                  gl.FLOAT,
+                  false,
                   3 * Float32Array.BYTES_PER_ELEMENT,
                   0
                 );
@@ -176,6 +177,7 @@ export default class Renderer extends Trigger {
               if (gl) {
                 GLUtil.attribute(
                   gl,
+                  program,
                   m._colorBuffer,
                   new Float32Array(m.colors),
                   'a_color',

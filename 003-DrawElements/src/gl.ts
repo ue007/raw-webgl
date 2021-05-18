@@ -100,20 +100,21 @@ export const GLUtil = {
   },
   attribute: function (
     gl,
+    program,
     buffer,
     vertices,
-    index,
+    name,
     size,
     type,
     normalized,
     stride,
     offset
   ) {
-    index = gl.getAttribLocation(gl.program, index);
+    let location = gl.getAttribLocation(program, name);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(index, size, type, normalized, stride, offset); // https://developer.mozilla.org/zh-CN/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
-    gl.enableVertexAttribArray(index);
+    gl.vertexAttribPointer(location, size, type, normalized, stride, offset); // https://developer.mozilla.org/zh-CN/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
+    gl.enableVertexAttribArray(location);
     return buffer;
   },
   ibo: function (gl, indices) {
