@@ -2,12 +2,14 @@ import { GUI } from 'dat.gui';
 import { WebGLAPI } from './webglAPI';
 import { vertShaderCode, fragShaderCode } from './shader';
 import Data from './data';
-import { Trigger } from './trigger';
+import Trigger from './trigger';
 import Model from './model';
 import { GLUtil } from './gl';
+import Buffer from './core/Buffer';
+import DataBuffer from './core/DataBuffer';
 
 /*************************************************************/
-export default class Renderer extends Trigger {
+export default class Renderer extends Trigger<Renderer> {
   // 🖼️ Canvas
   canvas: HTMLCanvasElement;
   canvasOrId: HTMLCanvasElement | string;

@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "downlevelIteration": true,
+        "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "preserveConstEnums": true,
+        "resolveJsonModule": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "outDir": "./lib/",
+        "sourceMap": true,
+        "paths": {
+        }
+    },
+    "exclude": [
+        "node_modules",
+        "lib"
+    ],
+    
+}
