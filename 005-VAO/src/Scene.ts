@@ -5,6 +5,9 @@ import Model from './model/Model';
 import Trigger from './trigger';
 import { WebGLAPI } from './webglAPI';
 
+/**
+ * 渲染主场景
+ */
 export class Scene extends Trigger<Scene> {
   // 🖼️ Canvas
   private _canvas: HTMLCanvasElement;
@@ -179,14 +182,14 @@ export class Scene extends Trigger<Scene> {
    * @param model
    * @returns
    */
-  bind(model: Model) {
-    this._model = model;
+  // bind(model: Model) {
+  //   this._model = model;
 
-    let gl = this._gl;
-    if (!gl) return;
+  //   let gl = this._gl;
+  //   if (!gl) return;
 
-    this._model.forEach((m) => {
-      // m.createBuffer(this._gl, this._program);
-    }, this);
-  }
+  //   this._model.forEach((m) => {
+  //     // m.createBuffer(this._gl, this._program);
+  //   }, this);
+  // }
 }

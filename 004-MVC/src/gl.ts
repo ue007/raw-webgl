@@ -13,12 +13,12 @@ export const GLUtil = {
   },
 
   // get webgl or webgl context
-  getContext(canvas, webgl2) {
+  getContext(canvas, webgl2, options?) {
     if (!canvas) {
       return;
     }
     if (webgl2) {
-      return canvas.getContext('webgl2');
+      return canvas.getContext('webgl2', options);
     }
     return (
       canvas.getContext('experimental-webgls') || canvas.getContext('webgl')
