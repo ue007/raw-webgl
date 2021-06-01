@@ -1,0 +1,47 @@
+{
+  "name": "engine",
+  "version": "0.0.1",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "start": "serve -l tcp://127.0.0.1:8000 docs",
+    "build": "npm run bundle && npm run demo",
+    "bundle": "rollup -c tools/rollup.config.js",
+    "demo": "rollup -c tools/rollup.config.demo.js",
+    "eslint": "eslint --ext .ts src",
+    "compile": "tsc --noEmit --project ./tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "www"
+  },
+  "keywords": [
+    "webgpu"
+  ],
+  "author": "ue-007",
+  "license": "MIT",
+  "bugs": {
+    "url": "www"
+  },
+  "homepage": "",
+  "devDependencies": {
+    "@types/dat.gui": "^0.7.5",
+    "@types/gl-matrix": "^2.4.5",
+    "@typescript-eslint/eslint-plugin": "^3.8.0",
+    "@typescript-eslint/parser": "^3.8.0",
+    "eslint": "^7.6.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-import-resolver-typescript": "^2.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "rollup": "^2.23.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "serve": "^11.3.2",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.7"
+  },
+  "dependencies": {
+    "dat.gui": "^0.7.7",
+    "gl-matrix": "^3.3.0"
+  }
+}

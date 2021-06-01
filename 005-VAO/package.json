@@ -35,7 +35,8 @@
     "typescript": "latest",
     "webpack": "latest",
     "webpack-cli": "latest",
-    "webpack-dev-server": "latest"
+    "webpack-dev-server": "latest",
+    "@types/gl-matrix": "^2.4.5"
   },
   "dependencies": {
     "@types/three": "^0.125.1",

@@ -1,14 +1,14 @@
 import { GUI } from 'dat.gui';
 import { vec3, vec4 } from 'gl-matrix';
-import { GLUtil } from './gl';
+import { GLUtil } from './utils/gl';
 import Model from './model/Model';
-import Trigger from './trigger';
-import { WebGLAPI } from './webglAPI';
+import Trigger from './base/trigger';
+import { WebGLAPI } from './utils/webglAPI';
 
 /**
  * 渲染主场景
  */
-export class Scene extends Trigger<Scene> {
+export class Render extends Trigger<Render> {
   // 🖼️ Canvas
   private _canvas: HTMLCanvasElement;
   private _canvasOrId: HTMLCanvasElement | string;
@@ -81,7 +81,7 @@ export class Scene extends Trigger<Scene> {
     this._gl = gl;
 
     // ⚫ Set the default clear color when calling `gl.clear`
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clearColor(0.5, 0.5, 0.5, 1.0);
     // 🎭 Write to all channels during a clear
     gl.colorMask(true, true, true, true);
     // 👓 Test if when something is drawn, it's in front of what was drawn previously
@@ -123,8 +123,8 @@ export class Scene extends Trigger<Scene> {
   }
 
   // 🔺 Render triangle
-  private draw = () => {
-    var gl = this._gl;
+  private draw() {
+    let gl = this._gl;
 
     // 🖌️ Encode drawing commands
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -132,18 +132,24 @@ export class Scene extends Trigger<Scene> {
     gl.viewport(0, 0, this._canvas.width, this._canvas.height);
     gl.scissor(0, 0, this._canvas.width, this._canvas.height);
 
-    this._model &&
-      this._model.forEach((m) => {
-        // 以给定的形式绘制图形
-        // m.draw(gl);
-      });
+    this._draw();
 
     // ➿ Refresh canvas
-    this._animationHandler = requestAnimationFrame(this.draw);
-  };
+    this._animationHandler = requestAnimationFrame(() => this.draw());
+  }
+
+  private _draw() {
+    this._model.forEach((m) => {
+      console.log(m);
+      if (m.vao) {
+        m.vao.draw(this._gl);
+      }
+    });
+    console.log('draw objects');
+  }
 
   // 💥 Destroy Buffers, Shaders, Programs
-  public destroyResources() {
+  public destroy() {
     var gl = this._gl,
       model = this._model;
 
@@ -161,7 +167,7 @@ export class Scene extends Trigger<Scene> {
   // 🛑 Stop the renderer from refreshing, destroy resources
   public stop() {
     cancelAnimationFrame(this._animationHandler);
-    this.destroyResources();
+    this.destroy();
   }
 
   /**
@@ -177,19 +183,4 @@ export class Scene extends Trigger<Scene> {
   public get model(): Model {
     return this._model;
   }
-  /**
-   *
-   * @param model
-   * @returns
-   */
-  // bind(model: Model) {
-  //   this._model = model;
-
-  //   let gl = this._gl;
-  //   if (!gl) return;
-
-  //   this._model.forEach((m) => {
-  //     // m.createBuffer(this._gl, this._program);
-  //   }, this);
-  // }
 }

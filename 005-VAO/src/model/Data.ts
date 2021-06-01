@@ -71,6 +71,10 @@ export default class Data extends Trigger<Data> {
     return this._children;
   }
 
+  public get vao(): VertexArray {
+    return this._vao;
+  }
+
   addChild(child) {
     if (child.parent === this) {
       return;

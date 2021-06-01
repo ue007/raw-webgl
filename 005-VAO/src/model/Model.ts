@@ -1,6 +1,5 @@
 import Data from './Data';
 import Trigger from '../Trigger';
-import { defineProperties } from '../util';
 
 export default class Model extends Trigger<Model> {
   private _datas: Array<Data>;

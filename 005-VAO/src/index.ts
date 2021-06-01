@@ -1,10 +1,10 @@
-import Model from './model/Model';
 import Data from './model/Data';
-import { Scene } from './Scene';
+import Model from './model/Model';
+import { Render } from './Render';
 
-const scene = new Scene('canvas');
+const render = new Render('canvas');
 
-const model:Model =  scene.model;
+const model: Model = render.model;
 
 for (let i = 0; i < 10; i++) {
   const data = new Data();
@@ -12,5 +12,5 @@ for (let i = 0; i < 10; i++) {
   model.add(data);
 }
 
-console.log(scene);
+console.log(render);
 console.log(model);

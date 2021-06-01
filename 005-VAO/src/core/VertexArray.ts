@@ -205,6 +205,8 @@ export default class VertexArray {
    * @param  {Number} count  - the number of elements to be drew
    */
   draw(gl, offset, count) {
+    console.log(gl);
+    return;
     this.bind(gl);
     if (this._instanceBuffer) {
       if (this._indexBuffer) {
