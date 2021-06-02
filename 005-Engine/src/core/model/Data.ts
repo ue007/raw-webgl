@@ -35,7 +35,6 @@ export default class Data extends Trigger<Data> {
     let old = this._type;
     this._type = t;
     this.firePropertyChanged('type', old, t);
-    let vao = 
   }
 
   public get type(): string {

@@ -1,10 +1,21 @@
 import Buffer, { BufferDescriptor } from './Buffer';
-export interface IndexBufferDescriptor extends BufferDescriptor {}
+export interface IndexBufferDescriptor extends BufferDescriptor {
+  data:
+    | Int8Array
+    | Uint8Array
+    | Uint8ClampedArray
+    | Int16Array
+    | Uint16Array
+    | Int32Array
+    | Uint32Array
+    | Float32Array
+    | Float64Array;
+}
 export class IndexBuffer extends Buffer {
   private _elementType: number;
   private _elementSize: number;
   constructor(gl: WebGL2RenderingContext, options: IndexBufferDescriptor) {
-    IndexBuffer.TYPE = WebGLRenderingContext.ELEMENT_ARRAY_BUFFER;
+    Buffer.TYPE = WebGLRenderingContext.ELEMENT_ARRAY_BUFFER;
 
     let { data } = options,
       elementSize = data.BYTES_PER_ELEMENT,
@@ -38,5 +49,9 @@ export class IndexBuffer extends Buffer {
     this._elementType = elementType;
     this._elementSize = elementSize;
     this._count = data.length;
+  }
+
+  public get elementType(): number {
+    return this._elementType;
   }
 }

@@ -1,3 +1,4 @@
+import { IndexBuffer } from 'src/core/gl/IndexBuffer';
 import { default as Buffer } from '../core/gl/Buffer';
 
 /* Step1: Prepare the canvas and get WebGL context */
@@ -23,21 +24,10 @@ let buffers = {
     offset: 0,
     type: gl.FLOAT,
   }),
+  indices: new IndexBuffer(gl, {
+    data: new Uint16Array([3, 2, 1, 3, 1, 0]),
+  }),
 };
-
-/* let vertices = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5];
-
-// Create a new buffer object
-let vertex_buffer = gl.createBuffer();
-
-// Bind an empty array buffer to it
-gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-
-// Pass the vertices data to the buffer
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-// Unbind the buffer
-gl.bindBuffer(gl.ARRAY_BUFFER, null); */
 
 // unbind the vao
 gl.bindVertexArray(null);
@@ -100,17 +90,6 @@ buffers.vertices.bindAttribute({
   size: 3,
 });
 
-/* //Get the attribute location
-let coord = gl.getAttribLocation(shaderProgram, 'a_position');
-
-//point an attribute to the currently bound VBO
-gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
-
-//Enable the attribute
-gl.enableVertexAttribArray(coord); */
-
-/* Step5: Drawing the required object (triangle) */
-
 // Clear the canvas
 gl.clearColor(0.5, 0.5, 0.5, 0.9);
 
@@ -125,3 +104,13 @@ gl.viewport(0, 0, canvas.width, canvas.height);
 
 // Draw the triangle
 gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+// change bind to index buffer
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices.buffer);
+// draw Element
+gl.drawElements(
+  gl.TRIANGLES,
+  buffers.indices.count,
+  buffers.indices.elementType,
+  buffers.indices.offset
+);

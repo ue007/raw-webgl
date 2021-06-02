@@ -16,7 +16,7 @@ export interface BufferDescriptor {
   usage?: GLenum;
   size?: number;
   stride?: number;
-  name: string;
+  name?: string;
   buffer?: WebGLBuffer;
   data:
     | Int8Array
@@ -28,7 +28,7 @@ export interface BufferDescriptor {
     | Uint32Array
     | Float32Array
     | Float64Array; // https://devdocs.io/dom/arraybufferview
-  offset: number;
+  offset?: number;
   type?: number;
 }
 declare type DataType = {};
@@ -231,5 +231,17 @@ export default class Buffer {
     this._buffer = null;
     this._gl = null;
     Buffer.COUNT--;
+  }
+
+  public get count(): number {
+    return this._count;
+  }
+
+  public get offset(): number {
+    return this._offset;
+  }
+
+  public get buffer(): WebGLBuffer {
+    return this._buffer;
   }
 }
