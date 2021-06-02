@@ -28,8 +28,20 @@ export interface BufferDescriptor {
     | Uint32Array
     | Float32Array
     | Float64Array; // https://devdocs.io/dom/arraybufferview
+  offset: number;
+  type?: number;
 }
 declare type DataType = {};
+
+/**
+ * Shader中Attribute Type定义
+ */
+declare type AttributeType = {
+  name: string;
+  location: number;
+  type: number;
+  size: number;
+};
 /**
  * @see https://developer.mozilla.org/en-US/docs/Web/API/WebGLBuffer
  * @see https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext#buffers
@@ -53,12 +65,13 @@ declare type DataType = {};
 export default class Buffer {
   private _gl: WebGL2RenderingContext;
   private static COUNT: number = 0;
-  private readonly TYPE: number = WebGLRenderingContext.ARRAY_BUFFER;
+  protected static TYPE: number = WebGLRenderingContext.ARRAY_BUFFER;
   private _usage: GLenum;
   private _size: number = 0;
   private _stride: number = 0;
   private _name: string;
   private _buffer: WebGLBuffer;
+  private _offset: number;
   private _data:
     | Int8Array
     | Uint8Array
@@ -69,8 +82,9 @@ export default class Buffer {
     | Uint32Array
     | Float32Array
     | Float64Array;
-  private _count: number;
+  protected _count: number;
   private _instanceCount: number;
+  private _type: number;
 
   constructor(gl: WebGL2RenderingContext, options: BufferDescriptor) {
     this._gl = gl;
@@ -81,6 +95,8 @@ export default class Buffer {
     this._size = options.size;
     this._stride = options.stride;
     this._name = options.name;
+    this._offset = options.offset || 0;
+
     if (this._name === 'vertices' && !this._size) {
       this._size = 3;
     }
@@ -90,11 +106,25 @@ export default class Buffer {
 
     // bind buffer data
     if (!options.buffer && options.data) {
-      this.bind(options.data);
+      this.bindData(options.data);
     }
 
     // cache data
     this._data = options.data;
+    this._offset = options.offset || 0;
+
+    this._type = options.type || gl.FLOAT;
+
+    if (this._name === 'vertices') {
+      if (this._stride) {
+        this._count = options.data.length / this._stride;
+      } else {
+        this._count = options.data.length / this._size;
+      }
+    }
+    if (this._name === 'offset') {
+      this._instanceCount = options.data.length / 16;
+    }
   }
 
   /**
@@ -108,8 +138,9 @@ export default class Buffer {
    * bind buffer and buffer data
    * @param data
    * @see https://devdocs.io/dom/arraybufferview
+   * @see https://devdocs.io/dom/webglrenderingcontext/bufferdata
    */
-  public bind(
+  public bindData(
     data:
       | Int8Array
       | Uint8Array
@@ -135,9 +166,9 @@ export default class Buffer {
       this._instanceCount = data.length / 16;
     }
     // Binds a WebGLBuffer object to a given target.
-    gl.bindBuffer(this.TYPE, this._buffer);
+    gl.bindBuffer(Buffer.TYPE, this._buffer);
     // Updates buffer data.
-    gl.bufferData(this.TYPE, data, this._usage);
+    gl.bufferData(Buffer.TYPE, data, this._usage);
 
     // @todo
     // WebGLRenderingContext.bufferSubData()
@@ -145,6 +176,52 @@ export default class Buffer {
 
     // cache data
     this._data = data;
+  }
+
+  /**
+   *
+   * @param attribute
+   * @see https://devdocs.io/dom/webgl2renderingcontext/vertexattribipointer
+   */
+  public bindAttribute(attribute: AttributeType) {
+    let gl = this._gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
+
+    if (attribute.size > 4) {
+      // https://stackoverflow.com/questions/38853096/webgl-how-to-bind-values-to-a-mat4-attribute
+      for (
+        let i = 0, attributeCount = attribute.size / 4;
+        i < attributeCount;
+        i++
+      ) {
+        gl.enableVertexAttribArray(attribute.location + i);
+        gl.vertexAttribPointer(
+          attribute.location + i,
+          4,
+          gl.FLOAT,
+          false,
+          4 * attribute.size,
+          16 * i
+        );
+        if (attribute.name === 'offset') {
+          gl.vertexAttribDivisor(attribute.location + i, 1);
+        }
+      }
+    } else {
+      gl.enableVertexAttribArray(attribute.location);
+      // index, size, type, normalized, stride, offset
+      gl.vertexAttribPointer(
+        attribute.location,
+        this._size || attribute.size,
+        this._type,
+        false,
+        this._stride,
+        this._offset
+      );
+      if (attribute.name === 'offset') {
+        gl.vertexAttribDivisor(attribute.location, 1);
+      }
+    }
   }
   /**
    * Deletes a WebGLBuffer object and destroy resource

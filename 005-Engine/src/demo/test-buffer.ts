@@ -20,6 +20,8 @@ let buffers = {
     size: 3,
     name: 'vertices',
     stride: 3 * Float32Array.BYTES_PER_ELEMENT,
+    offset: 0,
+    type: gl.FLOAT,
   }),
 };
 
@@ -44,9 +46,9 @@ gl.bindVertexArray(null);
 
 // Vertex shader source code
 let vertCode =
-  'attribute vec2 coordinates;' +
+  'attribute vec3 a_position;' +
   'void main(void) {' +
-  ' gl_Position = vec4(coordinates,0.0, 1.0);' +
+  ' gl_Position = vec4(a_position, 1.0);' +
   '}';
 
 //Create a vertex shader object
@@ -91,14 +93,21 @@ gl.useProgram(shaderProgram);
 //Bind vertex buffer object
 // gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
 
-//Get the attribute location
-let coord = gl.getAttribLocation(shaderProgram, 'coordinates');
+buffers.vertices.bindAttribute({
+  name: 'a_position',
+  location: gl.getAttribLocation(shaderProgram, 'a_position'),
+  type: gl.FLOAT,
+  size: 3,
+});
+
+/* //Get the attribute location
+let coord = gl.getAttribLocation(shaderProgram, 'a_position');
 
 //point an attribute to the currently bound VBO
 gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
 
 //Enable the attribute
-gl.enableVertexAttribArray(coord);
+gl.enableVertexAttribArray(coord); */
 
 /* Step5: Drawing the required object (triangle) */
 
