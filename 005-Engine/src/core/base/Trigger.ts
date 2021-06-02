@@ -9,7 +9,9 @@ interface TriggerListenerBundle<S> {
   callback: TriggerListener<S>;
   scope?: unknown;
 }
-
+/**
+ * 事件派发器
+ */
 export default class Trigger<S> {
   private listenerMap: Map<string, TriggerListenerBundle<S>[]> = new Map();
 

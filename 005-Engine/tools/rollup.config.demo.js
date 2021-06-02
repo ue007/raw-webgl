@@ -19,21 +19,21 @@ const banner = `<!DOCTYPE html>
     }
 
     canvas {
-      width: 100%;
-      height: 100%;
+      width: 600;
+      height: 600;
     }
   </style>
 </head>
 
 <body>
-  <canvas id="canvas"></canvas>
+  <canvas id="canvas" width = "600" height = "600"></canvas>
   <script type="module">`;
 const footer = `</script>
 </body>
 
 </html>`;
 
-export default commandLineArgs => {
+export default (commandLineArgs) => {
   const inputFiles = {};
   const demo = commandLineArgs.configDemo;
   if (demo) {
@@ -68,9 +68,7 @@ export default commandLineArgs => {
       banner,
       footer,
     },
-    plugins: [
-      typescript(),
-    ],
-    external: id => /(gl-matrix)|(dat\.gui)|(\/index$)/.test(id),
+    plugins: [typescript()],
+    external: (id) => /(gl-matrix)|(dat\.gui)|(\/index$)/.test(id),
   };
-}
+};

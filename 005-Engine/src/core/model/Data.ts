@@ -25,7 +25,6 @@ export default class Data extends Trigger<Data> {
     return this._id;
   }
 
-  
   /**
    * 设置数据类型：Cube、Sphere and so on
    */
@@ -35,7 +34,12 @@ export default class Data extends Trigger<Data> {
     }
     let old = this._type;
     this._type = t;
-    this.firePropertyChanged('fovy', old, t);
+    this.firePropertyChanged('type', old, t);
+    let vao = 
+  }
+
+  public get type(): string {
+    return this._type;
   }
 
   public get children(): Array<Data> {
