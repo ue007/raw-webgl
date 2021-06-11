@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "target": "esnext",
+    "module": "esnext",
+    "baseUrl": "./",
+    "paths": {
+      "glslang": ["typings-custom/glslang"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "typings-custom/**/*"
+  ]
+}
